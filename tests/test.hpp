@@ -32,7 +32,10 @@ void TestWeightedOrientedGraph();
 
 /* Сюда нужно добавить объявления тестовых функций. */
 
-
+/**
+ * @brief Набор тестов для алгоритма graph::Edmonds.
+ */
+void TestEdmonds(httplib::Client* cli);
 
 /* Конец вставки. */
 
