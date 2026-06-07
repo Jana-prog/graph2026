@@ -2,7 +2,7 @@
  * @file include/edmonds.hpp
  * @author Jana K
  *
- * Алгоритм Эдмондса нахождения наибольшего паросочетания в графе.
+ * Алгоритм Эдмондса построения наибольшего паросочетания в графе.
  */
 
 #ifndef INCLUDE_EDMONDS_HPP_
@@ -15,8 +15,22 @@
 
 namespace graph {
 
+/**
+ * @brief Реализация алгоритма Эдмондса (алгоритма сжатия соцветий).
+ *
+ * Класс хранит состояние алгоритма — текущее паросочетание, лес
+ * чередующихся цепей и базы сжатых нечётных циклов ("соцветий") — и ищет
+ * увеличивающие цепи, сжимая встречающиеся нечётные циклы. Предполагается,
+ * что вершины графа занумерованы подряд числами от 0 до n - 1.
+ */
 class EdmondsHelper {
  public:
+  /**
+   * @brief Конструктор.
+   *
+   * @param adjacency Список смежности графа. Вершины должны быть
+   *     занумерованы подряд от 0 до adjacency.size() - 1.
+   */
   explicit EdmondsHelper(
       const std::vector<std::vector<int>>& adjacency) :
     adjacency(adjacency),
@@ -28,7 +42,16 @@ class EdmondsHelper {
     inBlossom(numVertices, false) {
   }
 
-  const std::vector<int>& FindEdmonds() {
+  /**
+   * @brief Построить наибольшее паросочетание.
+   *
+   * @return Вектор match: match[i] — вершина, образующая пару с вершиной i,
+   *     или -1, если вершина i не входит в паросочетание.
+   *
+   * Перебираем непарные вершины и, пока для очередной находится
+   * увеличивающая цепь, расширяем вдоль неё текущее паросочетание.
+   */
+  const std::vector<int>& FindMaximumMatching() {
     for (int vertex = 0; vertex < numVertices; vertex++) {
       if (match[vertex] == -1) {
         int last = FindAugmentingPath(vertex);
@@ -49,6 +72,17 @@ class EdmondsHelper {
   }
 
  private:
+  /**
+   * @brief Найти базу общего соцветия двух вершин.
+   *
+   * @param first Первая вершина.
+   * @param second Вторая вершина.
+   * @return База соцветия — ближайший общий предок вершин в лесу
+   *     чередующихся цепей.
+   *
+   * Поднимаемся от обеих вершин к корню по чередующимся цепям; первая
+   * вершина, встреченная с обеих сторон, и есть искомая база.
+   */
   int FindBlossomBase(int first, int second) {
     std::vector<bool> visited(numVertices, false);
 
@@ -74,6 +108,17 @@ class EdmondsHelper {
     }
   }
 
+  /**
+   * @brief Пройти по нечётному циклу и пометить его вершины.
+   *
+   * @param vertex Вершина, с которой начинаем обход цикла.
+   * @param blossomBase База соцветия (до неё идём).
+   * @param child Вершина, которая после сжатия становится потомком vertex.
+   *
+   * Идём от vertex до базы, помечаем все вершины цикла как принадлежащие
+   * соцветию и попутно перестраиваем дерево цепей, чтобы их можно было
+   * считать потомками базы.
+   */
   void MarkBlossomPath(int vertex, int blossomBase, int child) {
     while (base[vertex] != blossomBase) {
       inBlossom[base[vertex]] = true;
@@ -85,6 +130,17 @@ class EdmondsHelper {
     }
   }
 
+  /**
+   * @brief Найти увеличивающую цепь, начинающуюся в вершине root.
+   *
+   * @param root Начальная непарная вершина.
+   * @return Последняя вершина найденной увеличивающей цепи или -1, если
+   *     такой цепи нет.
+   *
+   * Обходом в ширину строим лес чередующихся цепей. Если попадается ребро
+   * между двумя "чётными" вершинами дерева, образовавшийся нечётный цикл
+   * (соцветие) сжимаем в его базу и продолжаем поиск.
+   */
   int FindAugmentingPath(int root) {
     used.assign(numVertices, false);
     parent.assign(numVertices, -1);
@@ -105,6 +161,8 @@ class EdmondsHelper {
         if (base[vertex] == base[to] || match[vertex] == to)
           continue;
 
+        // to - чётная вершина дерева => наткнулись на нечётный цикл,
+        // сжимаем его в одну вершину (база - их общий предок).
         if (to == root ||
             (match[to] != -1 && parent[match[to]] != -1)) {
           int blossomBase = FindBlossomBase(vertex, to);
@@ -138,15 +196,34 @@ class EdmondsHelper {
     return -1;
   }
 
+  //! Список смежности графа.
   const std::vector<std::vector<int>>& adjacency;
+  //! Число вершин графа.
   int numVertices;
+  //! Текущее паросочетание: match[i] - пара вершины i, либо -1.
   std::vector<int> match;
+  //! Родитель вершины в лесу чередующихся цепей.
   std::vector<int> parent;
+  //! База соцветия, которому принадлежит вершина.
   std::vector<int> base;
+  //! Отметка, что вершина уже добавлена в очередь обхода.
   std::vector<bool> used;
+  //! Отметка, что вершина попала в текущее сжимаемое соцветие.
   std::vector<bool> inBlossom;
 };
 
+/**
+ * @brief Построить наибольшее паросочетание алгоритмом Эдмондса.
+ *
+ * @param graph Неориентированный граф, в котором ищем паросочетание.
+ * @return Рёбра наибольшего паросочетания, заданные парами идентификаторов
+ *     вершин графа.
+ *
+ * Идентификаторы вершин могут быть произвольными, поэтому сначала
+ * перенумеровываем их подряд, строим список смежности и запускаем
+ * EdmondsHelper, после чего переводим результат обратно в исходные
+ * идентификаторы. Время работы — O(V^3), где V — число вершин.
+ */
 template<typename GraphType>
 std::vector<std::pair<size_t, size_t>> Edmonds(
     const GraphType& graph) {
@@ -168,13 +245,14 @@ std::vector<std::pair<size_t, size_t>> Edmonds(
   }
 
   EdmondsHelper helper(adjacency);
-  const std::vector<int>& match = helper.FindEdmonds();
+  const std::vector<int>& match = helper.FindMaximumMatching();
 
   std::vector<std::pair<size_t, size_t>> result;
 
   for (size_t i = 0; i < match.size(); i++) {
     int j = match[i];
 
+    // match симметричен, берём каждую пару один раз.
     if (j != -1 && static_cast<size_t>(j) > i)
       result.push_back(std::make_pair(indexToId[i], indexToId[j]));
   }

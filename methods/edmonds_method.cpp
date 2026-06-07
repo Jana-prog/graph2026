@@ -19,6 +19,17 @@ template<typename GraphType>
 int EdmondsMethodHelper(const nlohmann::json& input,
     nlohmann::json* output);
 
+/**
+ * @brief Серверный метод построения наибольшего паросочетания.
+ *
+ * @param input Входные данные в формате JSON (тип графа, вершины, рёбра).
+ * @param output Результат работы алгоритма в формате JSON.
+ * @return 0 в случае успеха и отрицательное число, если входные данные
+ *     некорректны или тип графа не поддерживается.
+ *
+ * Разбирает поле "graph_type" и вызывает шаблонный помощник для нужного
+ * типа графа.
+ */
 int EdmondsMethod(const nlohmann::json& input,
     nlohmann::json* output) {
   std::string graphType = input.at("graph_type");
@@ -34,9 +45,23 @@ int EdmondsMethod(const nlohmann::json& input,
     }
   }
 
+  // Ориентированные графы (OrientedGraph, WeightedOrientedGraph) не
+  // поддерживаем: наибольшее паросочетание определено для
+  // неориентированных графов.
   return -1;
 }
 
+/**
+ * @brief Запустить алгоритм Эдмондса для конкретного типа графа.
+ *
+ * @param input Входные данные в формате JSON.
+ * @param output Результат в формате JSON: массив "result" из пар
+ *     {"from", "to"} — рёбер найденного паросочетания.
+ * @return 0 (корректность входных данных уже проверена диспетчером).
+ *
+ * Собирает граф из JSON, запускает graph::Edmonds и записывает найденное
+ * паросочетание в выходной JSON.
+ */
 template<typename GraphType>
 int EdmondsMethodHelper(const nlohmann::json& input,
     nlohmann::json* output) {

@@ -34,6 +34,8 @@ void TestWeightedOrientedGraph();
 
 /**
  * @brief Набор тестов для алгоритма graph::Edmonds.
+ *
+ * @param cli Указатель на HTTP клиент.
  */
 void TestEdmonds(httplib::Client* cli);
 
